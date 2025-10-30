@@ -8,27 +8,72 @@ format: typst
 ## **Part 0: libraries**
 
 ```{r}
-
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
 ```
 
 ## **Part 1:** **Defining Research Question**
 
-Chosen Question:
+Chosen Question: Which states have the most growth in renewable energy usage?
 
 ## **Part 2: Data Preparation and Cleaning**
 
 ```{r}
+
+renew_2021 <- read.csv("data/renew-use-2021.csv")
+renew_2022 <- read.csv("data/renew-use-2022.csv")
+renew_2023 <- read.csv("data/renew-use-2023.csv")
 
 ```
 
 ## **Part 3: Joining / Pivoting Datasets for Analysis**
 
 ```{r}
+renew_all <- renew_2021 %>%
+  full_join(renew_2022, by = c("State", "Energy_Source")) %>%
+  full_join(renew_2023, by = c("State", "Energy_Source"))
 
+renew_all[, 3:5] <- lapply(renew_all[, 3:5], function(x) {
+  x <- gsub("[^0-9.]", "", x)   
+  x <- ifelse(x == "", NA, x)   
+  as.numeric(x)                
+})
+
+state_growth <- renew_all %>%
+  group_by(State) %>%
+  summarize(
+    total_2021 = sum(Renewable_Use_2021, na.rm = TRUE),
+    total_2023 = sum(Renewable_Use_2023, na.rm = TRUE)
+  ) %>%
+  mutate(
+    growth_2021_2023 = (total_2023 - total_2021) / total_2021 * 100
+  ) %>%
+  arrange(desc(growth_2021_2023))
+
+
+state_growth <- state_growth %>%
+  filter(is.finite(growth_2021_2023))
+
+head(state_growth, 10)
 ```
 
 ## **Part 4: Mapping Visualization**
 
 ```{r}
+library(ggplot2)
 
+ggplot(state_growth, aes(x = reorder(State, growth_2021_2023), y = growth_2021_2023)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Fastest Growth in Renewable Energy Use (2021–2023)",
+    x = "State",
+    y = "Growth (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_text(size = 10),  
+  )
 ```
