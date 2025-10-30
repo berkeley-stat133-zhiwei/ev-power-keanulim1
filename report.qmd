@@ -62,18 +62,41 @@ head(state_growth, 10)
 ## **Part 4: Mapping Visualization**
 
 ```{r}
-library(ggplot2)
-
 ggplot(state_growth, aes(x = reorder(State, growth_2021_2023), y = growth_2021_2023)) +
   geom_col(fill = "steelblue") +
   coord_flip() +
   labs(
     title = "Fastest Growth in Renewable Energy Use (2021–2023)",
     x = "State",
-    y = "Growth (%)"
+    y = "Growth (%)") +
+  theme_minimal() +
+  theme(axis.title.y = element_text(size = 10),)
+
+using abbreviations from data
+state_abbrev <- data.frame(
+  State = state.abb,           
+  region = tolower(state.name))
+
+state_growth <- state_growth %>%
+  left_join(state_abbrev, by = "State")
+us_states <- map_data("state")
+
+#merge map data with growth data
+map_data_growth <- us_states %>%
+  left_join(state_growth, by = "region")
+
+#plot map
+ggplot(map_data_growth, aes(long, lat, group = group, fill = growth_2021_2023)) +
+  geom_polygon(color = "white") +
+  scale_fill_gradient(low = "lightyellow", high = "darkgreen", na.value = "grey90") +
+  labs(
+    title = "Renewable Energy Growth by State (2021–2023)",
+    fill = "Growth (%)"
   ) +
   theme_minimal() +
   theme(
-    axis.title.y = element_text(size = 10),  
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
   )
 ```
